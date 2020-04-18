@@ -3,6 +3,7 @@
 # Date: 15/04/2020
 # TODO: remove unnecessary comments
 # TODO: ask about boundary input cases
+# TODO: make the bird edges round to increase precision of collision detection
 # ===================  IMPORTS  ===================+
 import tkinter as tk
 import random
@@ -15,11 +16,11 @@ class Bird:
     This class is responsible for creating the player (bird) object on the main canvas window
     and managing its motion (jumping and falling)
     """
-    # Public variable to store the file path for the player image
+    # Public attribute to store the file path for the player image
     _PLAYER_IMAGE_FILE = "sprites/bird.png"
-    # Private variable to store the maximum downward falling speed of the player
+    # Private attribute to store the maximum downward falling speed of the player
     _GRAVITY_Y_SPEED = 3
-    # Private variable to store the maximum upward jump speed of the player (directly proportional to the jump height)
+    # Private attribute to store the maximum upward jump speed of the player (directly proportional to the jump height)
     _JUMP_Y_SPEED = -5  # -5
 
     def __init__(self, root, canvas, window_width, window_height):
@@ -34,12 +35,12 @@ class Bird:
         self._canvas = canvas
         self._window_width = window_width
         self._window_height = window_height
-        # Tkinter private image variable to store the player sprite
+        # Tkinter private image attribute to store the player sprite
         self._player_sprite = tk.PhotoImage(file=self._PLAYER_IMAGE_FILE)
         # Initialize player object (bird) from the canvas class and store it in a public attribute self.player
         self.player = self._canvas.create_image(self._window_width / 2, self._window_height / 2,
                                                 image=self._player_sprite, anchor="c", tag="player")
-        # Private variable to store the player's current vertical (y) speed
+        # Private attribute to store the player's current vertical (y) speed
         self._y_speed = self._GRAVITY_Y_SPEED
 
     def player_fall(self):
@@ -67,13 +68,13 @@ class Pipe:
     This class is responsible for creating the pipe objects on the main canvas window
     and managing their motion (moving sideways)
     """
-    # Private variable to store an integer-type for the width constant for each pipe
+    # Private attribute to store an integer-type for the width constant for each pipe
     _PIPE_WIDTH = 85
-    # Private variable to store an integer-type for the vertical separation constant for each pipe
+    # Private attribute to store an integer-type for the vertical separation constant for each pipe
     _PIPE_SEPARATION_Y = 120  # 160
-    # Private variable to store a float-type for the maximum horizontal speed constant for each pipe
+    # Private attribute to store a float-type for the maximum horizontal speed constant for each pipe
     _MAX_X_SPEED = -2.6  # -2
-    # Private variable to store an integer-type spawn x-coordinate for each pipe
+    # Private attribute to store an integer-type spawn x-coordinate for each pipe
     _SPAWN_X = 487
     # Private variable to store a float-type  for the frequency of generation of each pipe
     _PIPE_SPAWN_INTERVAL = 2.0  # 2.5
@@ -91,9 +92,9 @@ class Pipe:
         self._window_width = window_width
         self._window_height = window_height
 
-        # Private variable to store an instance of the bottom pipe object
+        # Private variable to store the bottom pipe widget
         self._pipe_bottom = None
-        # Private variable to store an instance of the top pipe object
+        # Private variable to store the top pipe widget
         self._pipe_top = None
         # Private integer-type variable to store the coordinate of the spawn origin of each pipe
         self._origin_x = self._SPAWN_X
@@ -102,12 +103,12 @@ class Pipe:
         # Private integer-type variable to store a constant for the horizontal speed of each pipe
         self._x_speed = self._MAX_X_SPEED
 
-    def pipe_initialization_timer(self):
+    def pipe_generator(self):
         """
         This public method controls the initialisation process of new pipe objects at pre-defined
         time intervals (calls the pipe generator method when appropriate)
         """
-        # Private float-type variable
+        # Private float-type variable to store the time elapse since the start of the game instance
         _time_elapsed = round(time.time(), 1)
         # An if statement that checks the time elapsed since the last pipe object has been generated
         if _time_elapsed % self._PIPE_SPAWN_INTERVAL == 0:
@@ -174,169 +175,227 @@ class MainApplication:
         # Place the canvas widget within the tkinter Root window
         self._canvas.grid(row=0, column=0)
 
-        self._player = Bird(self.root, self._canvas, self._width, self._height)
-        self._canvas.bind("<KeyPress>", self._user_input_handler)
-        self._canvas.bind("<Button>", self._user_input_handler)
-        self._canvas.focus_set()
+        # Private variable to store an instance of the Bird class (player)
+        self._player = None
 
-        self._best_score = 0
-        self._player_score = 0
-        self._score_counter_text = self._canvas.create_text(self._width / 2, 120, text="{}".format(self._player_score),
-                                                            fill="white", font=("Arial", 50), justify="center",
-                                                            tag="score_counter")
-
-        self._canvas.itemconfigure(self._player.player, state='hidden')
-        self._canvas.itemconfigure(self._score_counter_text, state='hidden')
-
+        # Initialise an instance of the Pipe class and store in a private variable _pipe
         self._pipe = Pipe(self.root, self._canvas, self._width, self._height)
+        # Private variable to store the id of the last pipe pair (bottom pipe) that the user has passed through
         self._scored_pipe = None
 
+        # Binding input from a user (keypress) to a private method _user_input_handler
+        self._canvas.bind("<KeyPress>", self._user_input_handler)
+        # Binding input from a user (mouse click) to a private method _user_input_handler
+        self._canvas.bind("<Button>", self._user_input_handler)
+        # Setting keyboard focus to the main canvas window
+        self._canvas.focus_set()
+
+        # Private integer-type variable to store the user's best scores
+        self._best_score = 0
+        # Private integer-type variable to store the user's current score (within a single game session)
+        self._player_score = 0
+        # Private variable to store the score counter widget
+        self._score_counter_text = None
+
+        # Center the Tkinter root window on the user's screen
         self.root.eval('tk::PlaceWindow . center')
+        # Disallow the user from re-sizing the game window
         self.root.resizable(False, False)
 
+        # Call to the initialisation of the game
         self._start()
 
         self.root.mainloop()
 
-    def _intro_screen(self):
+    def _intro_menu(self):
         """
-        Generate the main menu of the game
+        This private method generates the main user menu containing the start button and an instructions page
         """
+        # Create a canvas rectangle widget to serve as the main menu's background
         self._canvas.create_rectangle(self._width / 2 - 100, self._height / 2 - 135, self._width / 2 + 100,
                                       self._height / 2 + 10, fill="yellow", tag="menu_window")
-
+        # Create a canvas text widget which stores the game title
         self._canvas.create_text(self._width / 2, self._height / 2 - 110, text="FlappyBird_v1", fill="black",
                                  font=("Arial", 12), justify="center", tag="intro_menu_widget")
-
-        button_start_game = tk.Button(self._canvas, text="Start", anchor='c', font=("ROBOTO", 12, "bold"),
-                                      command=self._initialise_game_layout)
-        button_start_game.configure(width=10, background="orange")
-        self._canvas.create_window(self._width / 2, self._height / 2 - 20, window=button_start_game, tag="start_button")
-        button_game_instructions = tk.Button(self._canvas, text="Instructions", anchor='c', font=("ROBOTO", 12, "bold"),
-                                             command=self._instructions_screen)
-        button_game_instructions.configure(width=10, background="orange")
-        self._canvas.create_window(self._width / 2, self._height / 2 - 65, window=button_game_instructions,
+        # Create a canvas button widget to act as the main menu's "start" button
+        _button_start_game = tk.Button(self._canvas, text="Start", anchor='c', font=("ROBOTO", 12, "bold"),
+                                       command=self._initialise_game_layout)
+        _button_start_game.configure(width=10, background="orange")
+        # Create a canvas window widget to host the "start" button
+        self._canvas.create_window(self._width / 2, self._height / 2 - 20, window=_button_start_game,
+                                   tag="start_button")
+        # Create a canvas button widget to act as the main menu's "instructions" button
+        _button_game_instructions = tk.Button(self._canvas, text="Instructions", anchor='c',
+                                              font=("ROBOTO", 12, "bold"),
+                                              command=self._instructions_screen)
+        _button_game_instructions.configure(width=10, background="orange")
+        # Create a canvas window widget to host the "restart" button
+        self._canvas.create_window(self._width / 2, self._height / 2 - 65, window=_button_game_instructions,
                                    tag="intro_menu_widget")
 
     def _instructions_screen(self):
         """
-        Present the game instructions to the user
+        This private method presents the user with the game instructions
         """
-        instructions = "Use <space> or <Button-1> \nto make the bird jump. " \
-                       "\nFly the bird as far as you \ncan without hitting a pipe."
+        # Game instructions text
+        _instructions = "Use <space> or <Button-1> \nto make the bird jump. " \
+                        "\nFly the bird as far as you \ncan without hitting a pipe."
+        # Remove any widgets related to the main menu
         self._canvas.delete("intro_menu_widget")
-        self._canvas.create_text(self._width / 2, self._height / 2 - 85, text=instructions, fill="black",
+        # Create a canvas text widget which stores the instructions text
+        self._canvas.create_text(self._width / 2, self._height / 2 - 85, text=_instructions, fill="black",
                                  font=("Arial", 12), justify="center", tag="instructions_menu_widget")
 
     def _user_input_handler(self, event):
         """
-        Do something when the user presses a key (keyboard event handler)
+        This private method processes all input supplied by the user (excluding menu buttons) such as keyboard or mouse
+        events
+        :param event: information about the user event
+        :return: None
         """
-        key_press = event.keysym
-        button_press = event.num
-        if key_press in ("space", "Up") or button_press == 1:
+        # This private variable stores the name of the key pressed by the user
+        _key_press = event.keysym
+        # This private variable stores the name of the mouse button pressed by the user
+        _button_press = event.num
+        if _key_press in ("space", "Up") or _button_press == 1:
+            # If a new game has just een started, treat the user input as a call to start a new game process
             if self._NEW_GAME:
                 self._NEW_GAME = False
+                # Set the keyboard focus on the canvas window
                 self._canvas.focus_set()
                 self._player.player_jump()
+                # Initiate the game flow
                 self._main()
 
-            elif self._GAME_OVER and button_press != 1:
+            # If a game session has ended, treat the user input as a call to start a new game session (restart)
+            elif self._GAME_OVER and _button_press != 1 and _key_press == "space":
                 self._restart_game()
 
+            # If a game session is currently running, treat the user input as calls for in-game mechanics (jumping)
             else:
-                if self._player.get_player_coords()[1] > 35:
-                    self._player.player_jump()
+                # If the player is not touching the upper window boundary, jump up
+                if self._player:
+                    if self._player.get_player_coords()[1] > 35:
+                        self._player.player_jump()
 
     def _initialise_game_layout(self):
         """
-        This function initialises the main game layout before each game starts
+        This function initialises the main game layout before each game session
         """
+        # Remove all widgets present on the canvas
         self._canvas.delete("all")
-        self._canvas.itemconfigure(self._score_counter_text, state='normal')
-        self._canvas.itemconfigure(self._player.player, state='normal')
+        # Initialise an instance of the Bird class and store in a private variable _player
         self._player = Bird(self.root, self._canvas, self._width, self._height)
+        # Indicate that a new game session has been initiated
         self._NEW_GAME = True
 
     def _main(self):
         """
-        This function carries out the game process
+        This function carries out the primary game flow (logic within a single game session)
         """
-        self._canvas.tag_raise(self._score_counter_text)
+        # Raise the score text widget above the pipe widgets (if exists)
+        if self._score_counter_text:
+            self._canvas.tag_raise(self._score_counter_text)
+        # Check the game window for collisions or overlaps between the existing widgets
         collision = self._overlap_detection()
-        self._pipe.pipe_initialization_timer()
+        # Generate a new pipe pair on the screen if appropriate
+        self._pipe.pipe_generator()
+        # Make the player more downward (fall due to gravity)
         self._player.player_fall()
+        # Move the pipe objects towards the player
         self._pipe.move_pipe()
+        # If no collision has been detected, repeat the process
         if not collision:
             self.root.after(15, self._main)
+        # If the player has collided with a pipe or the floor, initiate "game over" scene (menu)
         else:
             self._game_over_menu()
 
     def _overlap_detection(self):
         """
-        Detect when a collision or overlap occurs within the game between the player and other specified objects
+        This private method detects when a collision or an overlap occurs within the game between the player
+        and other specified widgets
+        :return: a boolean indicating whether a collision has occurred between the player and a pipe object or the floor
         """
-        pipe_objects = self._canvas.find_withtag("pipe")
-        player_coords = self._player.get_player_coords()
-        player_x = player_coords[0]
-        player_y = player_coords[1]
-        # TODO: make the bird edges round to increase precision of collision detection
-        overlapping_objects = self._canvas.find_overlapping(player_x - 20, player_y - 20, player_x + 24, player_y + 18)
-        for pipe in pipe_objects:
+        # A private tuple containing IDs of canvas widgets under the "pipe" tag present on the screen
+        _pipe_objects = self._canvas.find_withtag("pipe")
+        # A private list containing the coordinates of the player (bird) on the canvas
+        _player_coords = self._player.get_player_coords()
+        # A private int-type variable containing the x coordinate of the player on the canvas
+        _player_x = _player_coords[0]
+        # A private int-type variable containing the y coordinate of the player on the canvas
+        _player_y = _player_coords[1]
+        # A tuple containing the IDs of canvas widgets that overlap with the player (bird) widget
+        _overlapping_objects = self._canvas.find_overlapping(_player_x - 20, _player_y - 20, _player_x + 24,
+                                                             _player_y + 18)
+        for pipe in _pipe_objects:
+            # Remove pipes that have left the canvas window to maximise performance
             if self._canvas.coords(pipe)[2] < 0:
                 self._canvas.delete(pipe)
+            # Check whether the chosen pipe object is a bottom pipe
             if "bottom_pipe" in self._canvas.gettags(pipe):
-                if self._canvas.coords(pipe)[0] < player_x:
+                # Check if the player has flown above the specified pipe without colliding with it (through the gap)
+                if self._canvas.coords(pipe)[0] < _player_x:
+                    # Check that the player hasn't yet been scored for passing through the given pipe pair
                     if pipe != self._scored_pipe:
+                        # If not, assign the given pipe to _scored_pipe
                         self._scored_pipe = pipe
+                        # Give the player 1 point and update the score board
                         self._player_score += 1
                         self._update_score()
-            # Utilising player_x would be more efficient, but requesting for a new set of coordinates is a necessity
-            if pipe in overlapping_objects or self._player.get_player_coords()[1] > self._height - 28:
+            # If, however, the player has physically collided with the given pipe or the floor, return True
+            if pipe in _overlapping_objects or self._player.get_player_coords()[1] > self._height - 28:
+                # Indicates that a collision has occurred and a game over call should be made
                 return True
+        # Return False to indicate that no collision had occurred
         return False
 
     def _update_score(self):
         """
-        This function updates the main game score when the player scores a point
+        This private method updates the game score text every time the user scores
         """
+        # Clear the scoring board (if exists)
         self._canvas.delete("score_counter")
+        # Initialize a new game score counter widget and store it in the private attribute _score_counter_text
         self._score_counter_text = self._canvas.create_text(self._width / 2, 120, text="{}".format(self._player_score),
                                                             fill="white", font=("Arial", 50), justify="center",
                                                             tag="score_counter")
 
     def _game_over_menu(self):
         """
-        Generate the "game over" menu
+        This private method generates the "game over" menu with the user's end scores
         """
         self._GAME_OVER = True
         self._canvas.delete("score_counter")
+        # Check whether the user had reached a new high score
         if self._player_score > self._best_score:
+            # If so, set the new high score
             self._best_score = self._player_score
-        # Menu window
+        # Create a canvas rectangle widget to serve as the menu's background
         self._canvas.create_rectangle(self._width / 2 - 50, self._height / 2 - 135, self._width / 2 + 50,
                                       self._height / 2 + 10, fill="yellow", tag="game_over_t")
-        # Score text
+        # Create a canvas text widget to store and display the word "Score"
         self._canvas.create_text(self._width / 2, self._height / 2 - 110, text="Score", fill="black",
                                  font=("Arial", 20), justify="center", tag="game_over_t")
-        # Score number
+        # Create a canvas text widget to store and display the user's current score
         self._canvas.create_text(self._width / 2, self._height / 2 - 80, text=f"{self._player_score}", fill="red",
                                  font=("Arial", 20), justify="center", tag="game_over_t")
-        # Best score text
+        # Create a canvas text widget to store and display the word "Best score"
         self._canvas.create_text(self._width / 2, self._height / 2 - 45, text="Best", fill="black",
                                  font=("Arial", 20), justify="center", tag="game_over_t")
-        # Best score number
+        # Create a canvas text widget to store and display the user's best score
         self._canvas.create_text(self._width / 2, self._height / 2 - 15, text=f"{self._best_score}", fill="red",
                                  font=("Arial", 20), justify="center", tag="game_over_t")
+        # Create a canvas button widget to act as the "restart" button
         button_restart = tk.Button(self._canvas, text="Restart", anchor='c', font=("ROBOTO", 12, "bold"),
                                    command=self._restart_game)
         button_restart.configure(width=20, background="orange")
-        # Button background window
+        # Create a canvas window widget to host the "restart" button
         self._canvas.create_window(self._width / 2, self._height / 2 + 50, window=button_restart, tag="game_over_t")
 
     def _restart_game(self):
         """
-        This function clears the main canvas window and restarts the game
+        This private method clears the main canvas window and restarts the game
         """
         self._canvas.delete("all")
         self._GAME_OVER = False
@@ -346,9 +405,9 @@ class MainApplication:
 
     def _start(self):
         """
-        Start the game process
+        This private method acts as a trigger to initiate a new game process
         """
-        self._intro_screen()
+        self._intro_menu()
 
 
 MainApplication()
