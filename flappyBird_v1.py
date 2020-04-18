@@ -2,7 +2,6 @@
 # Creator - Danila Khomenko
 # Date: 15/04/2020
 # TODO: remove unnecessary comments
-# TODO: ask about boundary input cases
 # TODO: make the bird edges round to increase precision of collision detection
 # ===================  IMPORTS  ===================+
 import tkinter as tk
