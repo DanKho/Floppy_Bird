@@ -1,7 +1,6 @@
 # flappyBird_v1.py
 # Creator - Danila Khomenko
 # Date: 15/04/2020
-# TODO: remove unnecessary comments
 # TODO: make the bird edges round to increase precision of collision detection
 # ===================  IMPORTS  ===================+
 import tkinter as tk
