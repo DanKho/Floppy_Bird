@@ -1,6 +1,8 @@
 # flappyBird_v1.py
 # Creator - Danila Khomenko
 # Date: 15/04/2020
+# TODO: remove unnecessary comments
+# TODO: ask about boundary input cases
 # TODO: make the bird edges round to increase precision of collision detection
 # ===================  IMPORTS  ===================+
 import tkinter as tk
@@ -35,9 +37,9 @@ class Bird:
         self._window_height = window_height
         # Tkinter private image attribute to store the player sprite
         self._player_sprite = tk.PhotoImage(file=self._PLAYER_IMAGE_FILE)
-        # Initialize player object (bird) from the canvas class and store it in a public attribute self.player
-        self.player = self._canvas.create_image(self._window_width / 2, self._window_height / 2,
-                                                image=self._player_sprite, anchor="c", tag="player")
+        # Initialize player object (bird) from the canvas class and store it in a public attribute self._player
+        self._player = self._canvas.create_image(self._window_width / 2, self._window_height / 2,
+                                                 image=self._player_sprite, anchor="c", tag="player")
         # Private attribute to store the player's current vertical (y) speed
         self._y_speed = self._GRAVITY_Y_SPEED
 
@@ -45,7 +47,8 @@ class Bird:
         """
         Public method which makes the player move downward (fall)
         """
-        self._canvas.move(self.player, 0, self._y_speed)
+        # Make the payer move downward (fall)
+        self._canvas.move(self._player, 0, self._y_speed)
         self._y_speed += 0.25  # 0.25
 
     def player_jump(self):
@@ -58,7 +61,7 @@ class Bird:
         """
         Public method which returns the x and y coordinates of the player (bird) on the canvas
         """
-        return self._canvas.coords(self.player)
+        return self._canvas.coords(self._player)
 
 
 class Pipe:
@@ -260,7 +263,7 @@ class MainApplication:
             if self._NEW_GAME:
                 self._NEW_GAME = False
                 # Set the keyboard focus on the canvas window
-                self._canvas.focus_set()
+                # self._canvas.focus_set()
                 self._player.player_jump()
                 # Initiate the game flow
                 self._main()
@@ -273,7 +276,7 @@ class MainApplication:
             else:
                 # If the player is not touching the upper window boundary, jump up
                 if self._player:
-                    if self._player.get_player_coords()[1] > 35:
+                    if self._player.get_player_coords()[1] > 40:
                         self._player.player_jump()
 
     def _initialise_game_layout(self):
@@ -286,28 +289,6 @@ class MainApplication:
         self._player = Bird(self.root, self._canvas, self._width, self._height)
         # Indicate that a new game session has been initiated
         self._NEW_GAME = True
-
-    def _main(self):
-        """
-        This function carries out the primary game flow (logic within a single game session)
-        """
-        # Raise the score text widget above the pipe widgets (if exists)
-        if self._score_counter_text:
-            self._canvas.tag_raise(self._score_counter_text)
-        # Check the game window for collisions or overlaps between the existing widgets
-        collision = self._overlap_detection()
-        # Generate a new pipe pair on the screen if appropriate
-        self._pipe.pipe_generator()
-        # Make the player more downward (fall due to gravity)
-        self._player.player_fall()
-        # Move the pipe objects towards the player
-        self._pipe.move_pipe()
-        # If no collision has been detected, repeat the process
-        if not collision:
-            self.root.after(15, self._main)
-        # If the player has collided with a pipe or the floor, initiate "game over" scene (menu)
-        else:
-            self._game_over_menu()
 
     def _overlap_detection(self):
         """
@@ -324,8 +305,8 @@ class MainApplication:
         # A private int-type variable containing the y coordinate of the player on the canvas
         _player_y = _player_coords[1]
         # A tuple containing the IDs of canvas widgets that overlap with the player (bird) widget
-        _overlapping_objects = self._canvas.find_overlapping(_player_x - 20, _player_y - 20, _player_x + 24,
-                                                             _player_y + 18)
+        _overlapping_objects = self._canvas.find_overlapping(_player_x - 17, _player_y - 17, _player_x + 19,
+                                                             _player_y + 19)
         for pipe in _pipe_objects:
             # Remove pipes that have left the canvas window to maximise performance
             if self._canvas.coords(pipe)[2] < 0:
@@ -342,11 +323,15 @@ class MainApplication:
                         self._player_score += 1
                         self._update_score()
             # If, however, the player has physically collided with the given pipe or the floor, return True
-            if pipe in _overlapping_objects or self._player.get_player_coords()[1] > self._height - 28:
-                # Indicates that a collision has occurred and a game over call should be made
+            if pipe in _overlapping_objects:
+                # Indicates a collision between the bird and a pipe, so a game over call should be made
                 return True
-        # Return False to indicate that no collision had occurred
-        return False
+        # Indicates that a collision between the bird and the ground, so a game over call should be made
+        if self._player.get_player_coords()[1] > self._height-31:
+            return True
+        else:
+            # Return False to indicate that no collision had occurred
+            return False
 
     def _update_score(self):
         """
@@ -406,6 +391,28 @@ class MainApplication:
         This private method acts as a trigger to initiate a new game process
         """
         self._intro_menu()
+
+    def _main(self):
+        """
+        This function carries out the primary game flow (logic within a single game session)
+        """
+        # Raise the score text widget above the pipe widgets (if exists)
+        if self._score_counter_text:
+            self._canvas.tag_raise(self._score_counter_text)
+        # Generate a new pipe pair on the screen if appropriate
+        self._pipe.pipe_generator()
+        # Check the game window for collisions or overlaps between the existing widgets
+        collision = self._overlap_detection()
+        # Make the player more downward (fall due to gravity)
+        self._player.player_fall()
+        # Move the pipe objects towards the player
+        self._pipe.move_pipe()
+        # If no collision has been detected, repeat the process
+        if not collision:
+            self.root.after(15, self._main)
+        # If the player has collided with a pipe or the floor, initiate "game over" scene (menu)
+        else:
+            self._game_over_menu()
 
 
 MainApplication()
