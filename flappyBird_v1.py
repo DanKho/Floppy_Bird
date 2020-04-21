@@ -80,7 +80,7 @@ class Pipe:
     # Private attribute to store an integer-type variable for the spawn x-coordinate for each pipe
     _SPAWN_X = 487
     # Private variable to store a float-type variable for the frequency of generation of each pipe
-    _PIPE_SPAWN_INTERVAL = 1.5  # 2.5
+    _PIPE_SPAWN_INTERVAL = 2.0  # 2.5
     # Private variable to store a string-type for the color of each pipe
     _PIPE_COLOR = "lime green"
 
@@ -194,8 +194,8 @@ class MainApplication:
 
         # Initialise an instance of the Pipe class and store in a private variable _pipe
         self._pipe = Pipe(self.root, self._canvas, self._width, self._height)
-        # Private variable to store the id of the last pipe pair (bottom pipe) that the user has passed through
-        self._scored_pipe = None
+        # Private list to store the id of the last pipe pair (bottom pipe) that the user has passed through
+        self._scored_pipes = []
 
         # Binding input from a user (keypress) to a private method _user_input_handler
         self._canvas.bind("<KeyPress>", self._user_input_handler)
@@ -324,19 +324,22 @@ class MainApplication:
         # A tuple containing the IDs of canvas widgets that overlap with the player (bird) widget
         _overlapping_objects = self._canvas.find_overlapping(_player_x - 18, _player_y - 18, _player_x + 22,
                                                              _player_y + 20)
-
         for pipe in _pipe_objects:
             # Remove pipes that have left the canvas window to maximise performance
             if self._canvas.coords(pipe)[2] < 0:
+                # Check whether the current pipe object's id is in the _scored_pipes list
+                if pipe in self._scored_pipes:
+                    # Remove the redundant widget ID from the list
+                    self._scored_pipes.remove(pipe)
                 self._canvas.delete(pipe)
             # Check whether the chosen pipe object is a bottom pipe
             if "bottom_pipe" in self._canvas.gettags(pipe):
                 # Check if the player has flown above the specified pipe without colliding with it (through the gap)
                 if self._canvas.coords(pipe)[0] < _player_x:
                     # Check that the player hasn't yet been scored for passing through the given pipe pair
-                    if pipe != self._scored_pipe:
+                    if pipe not in self._scored_pipes:
                         # If not, assign the given pipe to _scored_pipe
-                        self._scored_pipe = pipe
+                        self._scored_pipes.append(pipe)
                         # Give the player 1 point and update the score board
                         self._player_score += 1
                         self._update_score()
