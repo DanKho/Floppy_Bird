@@ -2,7 +2,6 @@
 # Creator - Danila Khomenko
 # Date: 15/04/2020
 # TODO: remove unnecessary comments
-# TODO: ask about boundary input cases
 # TODO: make the bird edges round to increase precision of collision detection
 # ===================  IMPORTS  ===================+
 import tkinter as tk
@@ -16,7 +15,7 @@ class Bird:
     This class is responsible for creating the player (bird) object on the main canvas window
     and managing its motion (jumping and falling)
     """
-    # Public attribute to store the file path for the player image
+    # Private variable to store the file path for the player image
     _PLAYER_IMAGE_FILE = "sprites/bird.png"
     # Private attribute to store the maximum downward falling speed of the player
     _GRAVITY_Y_SPEED = 3
@@ -37,7 +36,7 @@ class Bird:
         self._window_height = window_height
         # Tkinter private image attribute to store the player sprite
         self._player_sprite = tk.PhotoImage(file=self._PLAYER_IMAGE_FILE)
-        # Initialize player object (bird) from the canvas class and store it in a public attribute self._player
+        # Initialize player object (bird) from the canvas class and store it in a private attribute self._player
         self._player = self._canvas.create_image(self._window_width / 2, self._window_height / 2,
                                                  image=self._player_sprite, anchor="c", tag="player")
         # Private attribute to store the player's current vertical (y) speed
@@ -47,6 +46,9 @@ class Bird:
         """
         Public method which makes the player move downward (fall)
         """
+        # If the player hits the upper window boundary, make it bounce back down
+        if self.get_player_coords()[1] < 20:
+            self._y_speed = self._GRAVITY_Y_SPEED
         # Make the payer move downward (fall)
         self._canvas.move(self._player, 0, self._y_speed)
         self._y_speed += 0.25  # 0.25
@@ -69,16 +71,18 @@ class Pipe:
     This class is responsible for creating the pipe objects on the main canvas window
     and managing their motion (moving sideways)
     """
-    # Private attribute to store an integer-type for the width constant for each pipe
+    # Private attribute to store an integer-type variable for the width constant for each pipe
     _PIPE_WIDTH = 85
-    # Private attribute to store an integer-type for the vertical separation constant for each pipe
+    # Private attribute to store an integer-type variable for the vertical separation constant for each pipe
     _PIPE_SEPARATION_Y = 120  # 160
-    # Private attribute to store a float-type for the maximum horizontal speed constant for each pipe
+    # Private attribute to store a float-type variable for the maximum horizontal speed constant for each pipe
     _MAX_X_SPEED = -2.6  # -2
-    # Private attribute to store an integer-type spawn x-coordinate for each pipe
+    # Private attribute to store an integer-type variable for the spawn x-coordinate for each pipe
     _SPAWN_X = 487
-    # Private variable to store a float-type  for the frequency of generation of each pipe
-    _PIPE_SPAWN_INTERVAL = 2.0  # 2.5
+    # Private variable to store a float-type variable for the frequency of generation of each pipe
+    _PIPE_SPAWN_INTERVAL = 1.5  # 2.5
+    # Private variable to store a string-type for the color of each pipe
+    _PIPE_COLOR = "lime green"
 
     def __init__(self, root, canvas, window_width, window_height):
         """
@@ -132,10 +136,11 @@ class Pipe:
         # Initialize bottom pipe object as a rectangle from the canvas class and store it in a private attribute
         self._pipe_bottom = self._canvas.create_rectangle(self._origin_x, _pipe1_len_from_top,
                                                           self._origin_x + self._PIPE_WIDTH, self._window_height + 5,
-                                                          fill="green", tags=("pipe", "bottom_pipe"))
+                                                          fill=self._PIPE_COLOR, tags=("pipe", "bottom_pipe"))
         # Initialize top pipe object as a rectangle from the canvas class and store it in a private attribute
         self._pipe_top = self._canvas.create_rectangle(self._origin_x, 0, self._origin_x + self._PIPE_WIDTH,
-                                                       _pipe2_len_from_top, fill="green", tags=("pipe", "top_pipe"))
+                                                       _pipe2_len_from_top, fill=self._PIPE_COLOR,
+                                                       tags=("pipe", "top_pipe"))
 
     def move_pipe(self):
         """
@@ -154,6 +159,8 @@ class MainApplication:
     _NEW_GAME = False
     # Private boolean-type variable to indicate whether the current game process has ended
     _GAME_OVER = False
+    # Private variable to store the file path for the game background image
+    _BACKGROUND_IMAGE_FILE = "sprites/background.png"
 
     def __init__(self):
         """
@@ -175,6 +182,12 @@ class MainApplication:
         self._canvas = tk.Canvas(self.root, width=self._width, height=self._height, background=self._background_color)
         # Place the canvas widget within the tkinter Root window
         self._canvas.grid(row=0, column=0)
+
+        # Tkinter private image attribute to store the game background PhotoImage
+        self._background_image = tk.PhotoImage(file=self._BACKGROUND_IMAGE_FILE)
+        # Initialize the background image widget from the canvas class
+        self._canvas.create_image(self._width / 2, self._height / 2,
+                                  image=self._background_image, anchor="c", tag="background")
 
         # Private variable to store an instance of the Bird class (player)
         self._player = None
@@ -213,17 +226,20 @@ class MainApplication:
         This private method generates the main user menu containing the start button and an instructions page
         """
         # Create a canvas rectangle widget to serve as the main menu's background
-        self._canvas.create_rectangle(self._width / 2 - 100, self._height / 2 - 135, self._width / 2 + 100,
-                                      self._height / 2 + 10, fill="yellow", tag="menu_window")
+        self._canvas.create_rectangle(self._width / 2 - 110, self._height / 2 - 140, self._width / 2 + 110,
+                                      self._height / 2 + 15, fill="yellow", tag="menu_window")
         # Create a canvas text widget which stores the game title
-        self._canvas.create_text(self._width / 2, self._height / 2 - 110, text="FlappyBird_v1", fill="black",
-                                 font=("Arial", 12), justify="center", tag="intro_menu_widget")
+        self._canvas.create_text(self._width / 2, self._height / 2 - 112, text="FloppyBird_v1", fill="black",
+                                 font=("ROBOTO", 12, "bold"), justify="center", tag="intro_menu_widget")
+        # Create a canvas text widget which stores the game author
+        self._canvas.create_text(self._width / 2, self._height / 2 - 90, text="Author: Danila Khomenko", fill="black",
+                                 font=("ROBOTO", 11), justify="center", tag="intro_menu_widget")
         # Create a canvas button widget to act as the main menu's "start" button
         _button_start_game = tk.Button(self._canvas, text="Start", anchor='c', font=("ROBOTO", 12, "bold"),
                                        command=self._initialise_game_layout)
         _button_start_game.configure(width=10, background="orange")
         # Create a canvas window widget to host the "start" button
-        self._canvas.create_window(self._width / 2, self._height / 2 - 20, window=_button_start_game,
+        self._canvas.create_window(self._width / 2, self._height / 2 - 14, window=_button_start_game,
                                    tag="start_button")
         # Create a canvas button widget to act as the main menu's "instructions" button
         _button_game_instructions = tk.Button(self._canvas, text="Instructions", anchor='c',
@@ -231,7 +247,7 @@ class MainApplication:
                                               command=self._instructions_screen)
         _button_game_instructions.configure(width=10, background="orange")
         # Create a canvas window widget to host the "restart" button
-        self._canvas.create_window(self._width / 2, self._height / 2 - 65, window=_button_game_instructions,
+        self._canvas.create_window(self._width / 2, self._height / 2 - 52, window=_button_game_instructions,
                                    tag="intro_menu_widget")
 
     def _instructions_screen(self):
@@ -239,13 +255,13 @@ class MainApplication:
         This private method presents the user with the game instructions
         """
         # Game instructions text
-        _instructions = "Use <space> or <Button-1> \nto make the bird jump. " \
-                        "\nFly the bird as far as you \ncan without hitting a pipe."
+        _instructions = "Use <space>, <Button-1> \nor <Up-arrow> to make the \nbird jump. " \
+                        "Fly the bird as \nfar as you can without \nhitting a pipe."
         # Remove any widgets related to the main menu
         self._canvas.delete("intro_menu_widget")
         # Create a canvas text widget which stores the instructions text
         self._canvas.create_text(self._width / 2, self._height / 2 - 85, text=_instructions, fill="black",
-                                 font=("Arial", 12), justify="center", tag="instructions_menu_widget")
+                                 font=("ROBOTO", 12), justify="center", tag="instructions_menu_widget")
 
     def _user_input_handler(self, event):
         """
@@ -263,7 +279,7 @@ class MainApplication:
             if self._NEW_GAME:
                 self._NEW_GAME = False
                 # Set the keyboard focus on the canvas window
-                # self._canvas.focus_set()
+                self._canvas.focus_set()
                 self._player.player_jump()
                 # Initiate the game flow
                 self._main()
@@ -274,10 +290,9 @@ class MainApplication:
 
             # If a game session is currently running, treat the user input as calls for in-game mechanics (jumping)
             else:
-                # If the player is not touching the upper window boundary, jump up
+                # If the player exists, make it jump up
                 if self._player:
-                    if self._player.get_player_coords()[1] > 40:
-                        self._player.player_jump()
+                    self._player.player_jump()
 
     def _initialise_game_layout(self):
         """
@@ -285,6 +300,8 @@ class MainApplication:
         """
         # Remove all widgets present on the canvas
         self._canvas.delete("all")
+        self._canvas.create_image(self._width / 2, self._height / 2,
+                                  image=self._background_image, anchor="c", tag="background")
         # Initialise an instance of the Bird class and store in a private variable _player
         self._player = Bird(self.root, self._canvas, self._width, self._height)
         # Indicate that a new game session has been initiated
@@ -305,8 +322,9 @@ class MainApplication:
         # A private int-type variable containing the y coordinate of the player on the canvas
         _player_y = _player_coords[1]
         # A tuple containing the IDs of canvas widgets that overlap with the player (bird) widget
-        _overlapping_objects = self._canvas.find_overlapping(_player_x - 17, _player_y - 17, _player_x + 19,
-                                                             _player_y + 19)
+        _overlapping_objects = self._canvas.find_overlapping(_player_x - 18, _player_y - 18, _player_x + 22,
+                                                             _player_y + 20)
+
         for pipe in _pipe_objects:
             # Remove pipes that have left the canvas window to maximise performance
             if self._canvas.coords(pipe)[2] < 0:
@@ -327,7 +345,7 @@ class MainApplication:
                 # Indicates a collision between the bird and a pipe, so a game over call should be made
                 return True
         # Indicates that a collision between the bird and the ground, so a game over call should be made
-        if self._player.get_player_coords()[1] > self._height-31:
+        if self._player.get_player_coords()[1] > self._height - 31:
             return True
         else:
             # Return False to indicate that no collision had occurred
